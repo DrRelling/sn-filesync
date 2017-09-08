@@ -1,5 +1,7 @@
 sn-filesync -- ServiceNow FileSync (v4.2.4)
 =================
+** Forked version with experimental "Open in FileSync" button in ServiceNow.
+
 
 [![NPM](https://nodei.co/npm-dl/sn-filesync.png?height=3&months=9)](https://nodei.co/npm-dl/sn-filesync/)
 
