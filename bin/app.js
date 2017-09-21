@@ -15,6 +15,7 @@ var crypto = require('crypto');
 var glob = require("glob");
 var winston = require('winston');
 var moment = require('moment');
+var exec = require('child_process').exec;
 
 // ---------------------------------------------------
 // custom imports
@@ -53,6 +54,15 @@ var constants = {
     //isWin = /^win/.test(process.platform)
 };
 
+var osOpen = (function () {
+    switch (process.platform) {
+        case 'darwin' : return 'open';
+        case 'win32' : return 'start';
+        case 'win64' : return 'start';
+        default : return 'xdg-open';
+    }
+})();
+
 // ignore hidden files/dirs like .sync_data and full records when watching for changes
 constants.chokiWatcherIgnore = [/[\/\\]\./, '**/*' + constants.fullRecordSuffix];
 
@@ -65,10 +75,13 @@ var testsRunning = false;
 
 var chokiWatcher = false,
     chokiWatcherReady = false;
-
+    
+var downloadWatcher = false,
+    downloadWatcherReady = false;
 
 var filesInQueueToDownload = 0,
-    filesToPreLoad = {};
+    filesToPreLoad = {},
+    filesToOpen = [];
 
 // a list of FileRecord objects indexed by file path for easy access
 var fileRecords = {};
@@ -399,6 +412,7 @@ function pushUpRecord(argv) {
  * @param argv {object} - options for finding record
  */
 function pullDownRecord(argv) {
+    console.log(argv);
     /*
      * Supported test cases:
      *
@@ -993,7 +1007,7 @@ function exportCurrentSetup(exportConfigPath) {
 
         exportConfig.roots[watchedFolders[i]].preLoadList = {};
     }
-
+    
     var chokiWatcher = chokidar.watch(watchedFolders, {
             persistent: true,
             // ignores use anymatch (https://github.com/es128/anymatch)
@@ -1023,7 +1037,7 @@ function exportCurrentSetup(exportConfigPath) {
 
             fs.writeFile(exportConfigPath, JSON.stringify(exportConfig, null, 4), function (err) {
                 if (err) {
-                    logit.eror('Error updating/writing config file. path: %s', exportConfigPath);
+                    logit.error('Error updating/writing config file. path: %s', exportConfigPath);
                 } else {
                     logit.info('Export complete'.green);
                     logit.info('Export location: %s'.green, exportConfigPath);
@@ -1404,13 +1418,17 @@ function send(file, callback) {
 function addFile(file, callback) {
 
     if (!trackFile(file)) return;
-
     // default callback
     callback = callback || function (complete) {
         if (!complete) {
             logit.warn(('Could not add file:  ' + file));
             listOfFailedFiles.push(file);
             multiDownloadStatus = constants.DOWNLOAD_FAIL;
+        }
+        if (filesToOpen.includes(file)) {
+            var idx = filesToOpen.indexOf(file);
+            filesToOpen.splice(idx, 1);
+            exec(osOpen + ' "" ' + '"' + file + '"');
         }
     };
 
@@ -1541,7 +1559,6 @@ function instanceInSync(snc, db, map, file, newData, callback) {
 
 
 function watchFolders() {
-
     // Watching folders will currently screw up our testing so don't do it when running tests.
     if (testsRunning) return;
 
@@ -1551,6 +1568,8 @@ function watchFolders() {
             persistent: true,
             // ignores use anymatch (https://github.com/es128/anymatch)
             ignored: constants.chokiWatcherIgnore,
+            
+            ignoreInitial: true,
 
             // performance hit?
             alwaysStat: true
@@ -1591,8 +1610,80 @@ function watchFolders() {
         .on('error', function (error) {
             logit.error('Error watching files:'.red, error);
         });
+        
+    downloadWatcher = chokidar.watch("C:/Users/AFoster1/Downloads", {
+        ignoreInitial: false
+    })
+    .on('add', function (downloadFilePath, stats) {
+        if (/^.*?\\sn_filesync_open.*?.json$/.test(downloadFilePath)) {
+            logit.info("Download file found, opening...")
+            fs.readFile(downloadFilePath, "utf-8", function (err, file) {
+                var client, root;
+                var fileJson = JSON.parse(file);
+                for (key in config.roots) {
+                    if (config.roots[key].host == fileJson.source) {
+                        root = key;
+                        client = getSncClient(key)
+                    }
+                }
+                client.table(fileJson.table).get(fileJson.sys_id, function (err, response) {
+                    if (err) {
+                        logit.error("Couldn't retrieve file: " + err);
+                        return;
+                    } else {
+                        //get the record and path
+                        var record = response.records[0];
+                        for (key in config.folders) {
+                            if (config.folders[key].table == fileJson.table) {
+                                fileJson.type = key;
+                            }
+                        }
+                        var folder = config.folders[fileJson.type];
+                        if (typeof folder.subDirPattern != "undefined") {
+                            var newFilePath = folder.subDirPattern.split("/").map(function (f, idx) {
+                                if (f.includes("<")) {
+                                    f = f.replace(/<(.*?)>/, function (mtch, grp) {
+                                        return record[grp];
+                                    });
+                                } else {
+                                    f = record[f];
+                                }
+                                return f;
+                            }).join("/");
+                            
+                            var extension;
+                            for (key in folder.fields) {
+                                if (folder.fields[key] == fileJson.field) {
+                                    extension = key;
+                                }
+                            }
+                            newFilePath = "".concat(
+                                root,
+                                "/" + fileJson.type,
+                                "/" + newFilePath,
+                                "/" + record.sys_name + "." + extension);
+                                
+                            newFilePath = newFilePath.replace(/\//g, String.fromCharCode(92));
+                            
+                            filesToOpen.push(newFilePath);
+                            
+                            if (fs.existsSync(newFilePath)) {
+                                addFile(newFilePath);
+                            } else {
+                                fs.outputFile(newFilePath, "");
+                            }
+                          
+                            fs.unlink(downloadFilePath, function (err) {
+                                logit.info("Download file removed.")
+                            });
+                        }
+                    }
+                });
+            });
+        }            
+    });
     // TODO : clear up old hash files when files removed..
-    // .on('unlink', function(path) {logit.info('File', path, 'has been removed');})
+    // .on('unlink', function(path) {logit.info('File', path, 'has been removed');})  
 }
 
 // for each root create the folders because we are lazy ppl

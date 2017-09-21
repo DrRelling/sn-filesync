@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<unload unload_date="2017-09-20 15:59:55">
+<sys_remote_update_set action="INSERT_OR_UPDATE">
+<application display_value=""/>
+<application_name/>
+<application_scope/>
+<application_version/>
+<collisions/>
+<commit_date/>
+<deleted/>
+<description/>
+<inserted/>
+<name>FileSync open button</name>
+<new_count/>
+<origin_sys_id/>
+<parent display_value=""/>
+<release_date/>
+<remote_base_update_set display_value=""/>
+<remote_parent_id/>
+<remote_sys_id>ef61638adbc9c700fdbb74b5ae96193a</remote_sys_id>
+<state>loaded</state>
+<summary/>
+<sys_class_name>sys_remote_update_set</sys_class_name>
+<sys_created_by>adam.foster</sys_created_by>
+<sys_created_on>2017-09-20 15:59:55</sys_created_on>
+<sys_id>37290d0edb518f401f0dff9aae96199e</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_updated_by>adam.foster</sys_updated_by>
+<sys_updated_on>2017-09-20 15:59:55</sys_updated_on>
+<update_set display_value=""/>
+<update_source display_value=""/>
+<updated/>
+</sys_remote_update_set>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Global">global</application>
+<category>customer</category>
+<comments/>
+<name>sys_ui_script_9b9bea15dbdd0740fdbb74b5ae961977</name>
+<payload>&lt;?xml version="1.0" encoding="UTF-8"?&gt;&lt;record_update table="sys_ui_script"&gt;&lt;sys_ui_script action="INSERT_OR_UPDATE"&gt;&lt;active&gt;true&lt;/active&gt;&lt;description&gt;Adds open button to fields FileSync can work with&lt;/description&gt;&lt;global&gt;true&lt;/global&gt;&lt;name&gt;FileSync open button&lt;/name&gt;&lt;script&gt;&lt;![CDATA[(function() {
+	var tables = {
+		"sys_script" : [ // business rules
+            {"id" : "sys_script.script.editor.toolbar", "type" : "script"}
+		],
+        "sys_script_client" : [ // client scripts
+            {"id" : "sys_script_client.script.editor.toolbar", "type" : "script"}
+        ],
+        "sys_script_email" : [ // email scripts
+            {"id" : "sys_script_email.script.editor.toolbar", "type" : "script"}
+        ],
+        "sysevent_in_email_action" : [ // inbound actions
+            {"id" : "sysevent_in_email_action.script.editor.toolbar", "type" : "script"}
+        ],
+        "sys_processor" : [ // processors
+            {"id" : "sys_processor.script.editor.toolbar", "type" : "script"}
+        ],
+        "sysevent_script_action" : [ // script actions
+            {"id" : "sysevent_script_action.script", "type" : "script"}
+        ],
+        "sys_script_include" : [ // script includes
+            {"id" : "sys_script_include.script.editor.toolbar", "type" : "script"}
+        ],
+        "content_css" : [ // style sheets
+            {"id" : "element.content_css.style", "type" : "style"}
+        ],
+        "sys_ui_action" : [ // UI actions
+            {"id" : "sys_ui_action.script.editor.toolbar", "type" : "script"}
+        ],
+        "sys_ui_macro" : [ // UI macros
+            {"id" : "sys_ui_macro.xml.editor.toolbar", "type" : "xml"}            
+        ],
+        "sys_ui_page" : [ // UI pages
+            {"id" : "sys_ui_page.html.editor.toolbar", "type" : "html"},
+            {"id" : "sys_ui_page.client_script.editor.toolbar", "type" : "client_script"},
+            {"id" : "sys_ui_page.processing_script.editor.toolbar", "type" : "processing_script"}
+        ],
+        "sys_ui_script" : [ // UI scripts
+            {"id" : "sys_ui_script.script.editor.toolbar", "type" : "script"}
+        ],
+        "content_block_programmatic" : [ // dynamic content blocks
+            {"id" : "content_block_programmatic.programmatic_content.editor.toolbar", "type" : "programmatic_content"}            
+        ],
+        "sysevent_email_template" : [ // email templates
+            {"id" : "mceu_23-body", "type" : "message_html"}
+        ],
+        "sys_script_fix" : [ // fix scripts
+            {"id" : "sys_script_fix.script.editor.toolbar", "type" : "script"}
+        ],
+        "catalog_script_client" : [ // catalog client scripts
+            {"id" : "catalog_script_client.script.editor.toolbar", "type" : "script"}
+        ],
+        "sys_web_service" : [ // web service
+            {"id" : "sys_web_service.script.editor.toolbar", "type" : "script"}
+        ],
+        "sys_ws_operation" : [ // web service resources
+            {"id" : "sys_ws_operation.operation_script.editor.toolbar", "type" : "script"}
+        ]
+	};
+    
+    window.addEventListener('load', function () {		
+		if (typeof g_form == "undefined"
+			|| window.NOW.user.roles.indexOf("admin") == -1
+			|| Object.keys(tables).indexOf(g_form.getTableName()) == -1) {
+			return;
+		}
+		
+        var pageInfo = {
+            "sys_id": g_form.getUniqueValue(),
+            "source": /^https:..(.*?\.service-now.com)/.exec(window.location.href)[1],
+            "table": g_form.getTableName()
+        };
+
+        var fields = tables[pageInfo.table];
+        
+        for (var i = 0; i &lt; fields.length; i++) {
+            addOpenInFilesyncButton(fields[i].id, fields[i].type);
+        }
+
+        function addOpenInFilesyncButton(id, field) {
+			var toolbar = document.getElementById(id);
+			
+            var jsn = "".concat(
+                'data:text/json;charset=utf-8,{"field": "',
+                field,
+                '","sys_id": "',
+                pageInfo.sys_id,
+                '","source": "',
+                pageInfo.source,
+                '","table": "',
+                pageInfo.table,
+                '"}'
+            );
+
+            var newButton = $j("&lt;a /&gt;", {
+                id: "open_with_filesync",
+                download: "sn_filesync_open.json",
+                href: jsn,
+                "class": "sn-tooltip-basic btn btn-default",
+                role: "button",
+                tabindex: "-1",
+                "data-original-title": "Open With FileSync"
+            }).appendTo(toolbar);
+
+            $j("&lt;img /&gt;", {
+                src: "images/view_form.png",
+                "class": "i16x16",
+                alt: "Open With FileSync",
+                "aria-hidden": "true"
+            }).appendTo(newButton);
+        }
+    }, false);
+})();]]&gt;&lt;/script&gt;&lt;script_name/&gt;&lt;sys_class_name&gt;sys_ui_script&lt;/sys_class_name&gt;&lt;sys_created_by&gt;adam.foster&lt;/sys_created_by&gt;&lt;sys_created_on&gt;2017-09-18 15:17:13&lt;/sys_created_on&gt;&lt;sys_customer_update&gt;false&lt;/sys_customer_update&gt;&lt;sys_id&gt;9b9bea15dbdd0740fdbb74b5ae961977&lt;/sys_id&gt;&lt;sys_mod_count&gt;20&lt;/sys_mod_count&gt;&lt;sys_name&gt;FileSync open button&lt;/sys_name&gt;&lt;sys_package display_value="Global" source="global"&gt;global&lt;/sys_package&gt;&lt;sys_policy/&gt;&lt;sys_replace_on_upgrade&gt;false&lt;/sys_replace_on_upgrade&gt;&lt;sys_scope display_value="Global"&gt;global&lt;/sys_scope&gt;&lt;sys_update_name&gt;sys_ui_script_9b9bea15dbdd0740fdbb74b5ae961977&lt;/sys_update_name&gt;&lt;sys_updated_by&gt;adam.foster&lt;/sys_updated_by&gt;&lt;sys_updated_on&gt;2017-09-20 13:35:27&lt;/sys_updated_on&gt;&lt;use_scoped_format&gt;false&lt;/use_scoped_format&gt;&lt;/sys_ui_script&gt;&lt;/record_update&gt;</payload>
+<payload_hash>-716057259</payload_hash>
+<remote_update_set display_value="FileSync open button">37290d0edb518f401f0dff9aae96199e</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>adam.foster</sys_created_by>
+<sys_created_on>2017-09-20 15:59:55</sys_created_on>
+<sys_id>7f290d0edb518f401f0dff9aae96199e</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>15e9f801d9a0000001</sys_recorded_at>
+<sys_updated_by>adam.foster</sys_updated_by>
+<sys_updated_on>2017-09-20 15:59:55</sys_updated_on>
+<table/>
+<target_name>FileSync open button</target_name>
+<type>UI Script</type>
+<update_domain>global</update_domain>
+<update_guid>db18a48af1dd4f40fb6b24fb244b7d6e</update_guid>
+<update_guid_history>db18a48af1dd4f40fb6b24fb244b7d6e:-716057259,3dd2acc6bddd4f40bc2b74ff3567fba1:1357094087,5f6e5082e9dd4f40c0c50d4e1b3df027:2012135813,3687940e079d4f4000f57082f09f2934:43616487,9337d88e689d4f40431e68c2ede634b2:1152995459,92e6940e309d4f40384e240e7eb94730:-256399552,12b6940e8b9d4f40a3386718335198a4:-1318984040,1196944ee39d4f40c361e4a8ffb1c255:-495243429,3656900eae9d4f401c0ff20d402ce542:2010347102,0d365c8a129d4f40edf9f28bff693a09:-939974863,e406940e839d4f40a683def7ee1e399f:-1214197364,34b5944653114b40c6982c4467733d75:-1978291308,76955c0e159d4f40068b07edad6573d1:525235091,bf73d04248114b401a9ae644fa516fe7:-1182882543,de0e7b31b1dd0b407c1327233ac4f8db:1368386844,0e5f13f9f9994f4080966b46658f21da:-1655151135,1a3fd77df45d0b40bc6ce66d58063438:-1749891583,ed3ddbf535994f40c6285d24f13f4ba1:-1781089682,3d3de21568dd07401e475b9017596c83:1398731518,3bec62d528dd074014143188cdd1ec52:-1344935518,be3ca2558bdd0740f25b93f8d1692982:825541622</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+</unload>
